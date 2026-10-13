@@ -161,4 +161,52 @@ describe('C and C++ Frontend Language Support & Routing Tests', () => {
       );
     });
   });
+
+  it('renders visible language ribbon and switches language on button click', async () => {
+    const analyzeSpy = vi.spyOn(api, 'analyzeCode').mockResolvedValue(mockCppReview);
+
+    const Harness = () => {
+      const [review, setReview] = React.useState<Review | null>(null);
+      const [code, setCode] = React.useState('public class Test {}');
+      const [language, setLanguage] = React.useState<SupportedLanguage>('auto');
+      const [title, setTitle] = React.useState('Java Audit');
+
+      return (
+        <ReviewerPage
+          currentReview={review}
+          setCurrentReview={setReview}
+          samples={[]}
+          code={code}
+          setCode={setCode}
+          language={language}
+          setLanguage={setLanguage}
+          title={title}
+          setTitle={setTitle}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    // Verify Target Language label and quick-select buttons exist
+    expect(screen.getByText(/Target Language:/i)).toBeInTheDocument();
+
+    const javaButton = screen.getByTitle('Select Java (Static & Security)');
+    expect(javaButton).toBeInTheDocument();
+
+    // Click Java button
+    fireEvent.click(javaButton);
+
+    const runBtn = screen.getByRole('button', { name: /run audit/i });
+    fireEvent.click(runBtn);
+
+    await waitFor(() => {
+      expect(analyzeSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          language: 'java',
+          code: expect.stringContaining('public class Test'),
+        })
+      );
+    });
+  });
 });

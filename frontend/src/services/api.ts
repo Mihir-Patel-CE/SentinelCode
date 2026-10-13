@@ -55,7 +55,13 @@ class ApiService {
       return response.json();
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        throw new Error('Request timed out. Please check server availability and try again.');
+        throw new Error(`Request timed out (${Math.round(timeoutMs / 1000)}s). The backend at ${API_BASE} may be spinning up from cold sleep.`);
+      }
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        throw new Error(
+          `Unable to connect to SentinelCode API (${API_BASE}${endpoint}). ` +
+          `Failed to fetch — please verify backend CORS permissions for this origin, network connectivity, or server status.`
+        );
       }
       throw err;
     } finally {

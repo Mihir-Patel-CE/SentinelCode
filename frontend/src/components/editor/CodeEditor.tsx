@@ -1,6 +1,18 @@
 import React, { useRef } from 'react';
-import { Play, Sparkles, Copy, Trash2, Check, FileCode } from 'lucide-react';
+import { Play, Sparkles, Copy, Trash2, Check, FileCode, Code2 } from 'lucide-react';
 import type { SupportedLanguage, SampleSnippet } from '../../types';
+
+export const LANGUAGE_OPTIONS: { id: SupportedLanguage; label: string; analyzer: string; badge: string }[] = [
+  { id: 'auto', label: 'Auto Detect', analyzer: 'Smart Routing', badge: 'Auto' },
+  { id: 'c', label: 'C', analyzer: 'Clang / C17', badge: 'Clang' },
+  { id: 'cpp', label: 'C++', analyzer: 'Clang++ / RAII', badge: 'Clang++' },
+  { id: 'python', label: 'Python', analyzer: 'AST & Security', badge: 'AST' },
+  { id: 'java', label: 'Java', analyzer: 'Static & Security', badge: 'Static' },
+  { id: 'javascript', label: 'JavaScript', analyzer: 'JS Syntax & Security', badge: 'JS' },
+  { id: 'typescript', label: 'TypeScript', analyzer: 'TS Type & Suppression', badge: 'TS' },
+  { id: 'go', label: 'Go', analyzer: 'Advisory AI', badge: 'AI' },
+  { id: 'rust', label: 'Rust', analyzer: 'Advisory AI', badge: 'AI' },
+];
 
 interface CodeEditorProps {
   code: string;
@@ -102,22 +114,30 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             </select>
           )}
 
-          {/* Language Selector */}
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
-            className="bg-slate-900 border border-slate-700 text-xs font-semibold text-cyan-400 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500 uppercase tracking-wider"
-          >
-            <option value="auto">Auto Detect</option>
-            <option value="c">C</option>
-            <option value="cpp">C++</option>
-            <option value="python">Python</option>
-            <option value="javascript">JavaScript</option>
-            <option value="typescript">TypeScript</option>
-            <option value="java">Java</option>
-            <option value="go">Go</option>
-            <option value="rust">Rust</option>
-          </select>
+          {/* Language Selector Dropdown */}
+          <div className="flex items-center space-x-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1">
+            <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1 select-none">
+              <Code2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+              <span>Language:</span>
+            </span>
+            <select
+              id="language-selector"
+              aria-label="Programming Language"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+              className="bg-slate-950 border border-slate-700 text-xs font-semibold text-cyan-400 rounded px-2 py-0.5 focus:outline-none focus:border-blue-500 uppercase tracking-wider cursor-pointer"
+            >
+              <option value="auto" className="bg-slate-900 text-slate-100">Auto Detect</option>
+              <option value="c" className="bg-slate-900 text-slate-100">C</option>
+              <option value="cpp" className="bg-slate-900 text-slate-100">C++</option>
+              <option value="python" className="bg-slate-900 text-slate-100">Python</option>
+              <option value="java" className="bg-slate-900 text-slate-100">Java</option>
+              <option value="javascript" className="bg-slate-900 text-slate-100">JavaScript</option>
+              <option value="typescript" className="bg-slate-900 text-slate-100">TypeScript</option>
+              <option value="go" className="bg-slate-900 text-slate-100">Go</option>
+              <option value="rust" className="bg-slate-900 text-slate-100">Rust</option>
+            </select>
+          </div>
 
           {/* Copy Button */}
           <button
@@ -139,6 +159,40 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
+      </div>
+
+      {/* Visible Quick Language Ribbon */}
+      <div className="flex items-center px-4 py-2 bg-slate-950/90 border-b border-slate-800 gap-1.5 overflow-x-auto scrollbar-none text-xs">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+          Target Language:
+        </span>
+        {LANGUAGE_OPTIONS.map((item) => {
+          const isSelected = language === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setLanguage(item.id)}
+              className={`px-2.5 py-1 rounded-md font-mono text-[11px] font-semibold shrink-0 transition-all flex items-center gap-1.5 ${
+                isSelected
+                  ? 'bg-blue-600/25 text-cyan-300 border border-cyan-500/60 shadow-sm shadow-cyan-500/10'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+              title={`Select ${item.label} (${item.analyzer})`}
+            >
+              <span>{item.label}</span>
+              <span
+                className={`text-[9px] px-1 py-0.5 rounded font-sans uppercase font-normal ${
+                  isSelected
+                    ? 'bg-cyan-500/20 text-cyan-200'
+                    : 'bg-slate-800 text-slate-500'
+                }`}
+              >
+                {item.badge}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Editor Body with Line Numbers */}

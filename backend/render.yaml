@@ -11,6 +11,6 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: "https://sentinelcode.onrender.com,http://localhost:5173,http://localhost:3000"
+        value: "https://sentinel-code.vercel.app,https://sentinelcode-1.onrender.com,https://sentinelcode.onrender.com,http://localhost:5173,http://localhost:3000"
       - key: AI_PROVIDER
         value: mock

@@ -53,6 +53,31 @@ def test_diagnostics_endpoint(client: TestClient):
     assert "cpp" in data["toolchains"]
 
 
+def test_cors_options_preflight_allows_vercel_origin(client: TestClient):
+    """Verifies that CORS preflight from the production Vercel frontend is allowed."""
+    headers = {
+        "Origin": "https://sentinel-code.vercel.app",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,authorization"
+    }
+    res = client.options("/api/v1/reviews/analyze", headers=headers)
+    assert res.status_code == 200
+    assert res.headers.get("access-control-allow-origin") == "https://sentinel-code.vercel.app"
+    assert "POST" in res.headers.get("access-control-allow-methods", "")
+
+
+def test_cors_options_preflight_allows_vercel_preview_domains(client: TestClient):
+    """Verifies that Vercel preview branch deployments are also permitted."""
+    headers = {
+        "Origin": "https://sentinel-code-preview-branch.vercel.app",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type,authorization"
+    }
+    res = client.options("/api/v1/reviews/analyze", headers=headers)
+    assert res.status_code == 200
+    assert res.headers.get("access-control-allow-origin") == "https://sentinel-code-preview-branch.vercel.app"
+
+
 def test_missing_compiler_returns_failed_status_and_no_false_success():
     """
     Verifies that when clang is missing from system PATH:

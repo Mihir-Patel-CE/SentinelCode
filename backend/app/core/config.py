@@ -21,7 +21,15 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{DEFAULT_DB_PATH}"
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+    ALLOWED_ORIGINS: str = (
+        "https://sentinel-code.vercel.app,"
+        "https://sentinelcode.onrender.com,"
+        "https://sentinelcode-1.onrender.com,"
+        "http://localhost:5173,"
+        "http://localhost:3000,"
+        "http://127.0.0.1:5173,"
+        "http://127.0.0.1:3000"
+    )
 
     # AI Configuration
     AI_PROVIDER: str = "mock"  # mock, openai, gemini, anthropic, groq, ollama
@@ -39,9 +47,19 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> List[str]:
+        default_origins = [
+            "https://sentinel-code.vercel.app",
+            "https://sentinelcode.onrender.com",
+            "https://sentinelcode-1.onrender.com",
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ]
         if not self.ALLOWED_ORIGINS:
-            return ["*"]
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+            return default_origins
+        configured = [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+        return list(dict.fromkeys(configured + default_origins))
 
     model_config = SettingsConfigDict(
         env_file=".env",
