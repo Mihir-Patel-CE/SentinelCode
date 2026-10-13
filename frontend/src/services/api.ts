@@ -1,6 +1,6 @@
 import { Review, ReviewListResponse, User, SampleSnippet, UserSettings, SupportedLanguage, LanguageCapability } from '../types';
 
-const API_BASE = '/api/v1';
+const API_BASE = 'https://sentinelcode.onrender.com/api/v1';
 
 class ApiService {
   private getToken(): string | null {
