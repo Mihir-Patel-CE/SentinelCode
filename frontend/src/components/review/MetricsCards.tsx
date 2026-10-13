@@ -45,6 +45,8 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
         return { label: 'Unsupported Language (Advisory AI)', color: 'bg-indigo-950/60 text-indigo-400 border-indigo-800/60' };
       case 'invalid_input':
         return { label: 'Invalid Input', color: 'bg-rose-950/60 text-rose-400 border-rose-800/60' };
+      case 'failed':
+        return { label: 'Analysis Failed (Toolchain Error)', color: 'bg-rose-950/60 text-rose-400 border-rose-800/60' };
       default:
         return { label: status, color: 'bg-slate-800 text-slate-300 border-slate-700' };
     }

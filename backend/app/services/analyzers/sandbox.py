@@ -61,30 +61,43 @@ class CompilerSandbox:
     @staticmethod
     def resolve_executable(name: str) -> Optional[str]:
         """
-        Locates the full path to a compiler executable, checking PATH and common
-        locations on Linux and macOS.
+        Locates the full path to a compiler executable, checking PATH, versioned
+        toolchain variants, and common LLVM locations on Linux and macOS.
         """
-        # First check PATH
-        resolved = shutil.which(name)
-        if resolved and os.access(resolved, os.X_OK):
-            return resolved
+        # Build candidate names (e.g. clang -> [clang, clang-19, clang-18, ...])
+        candidate_names = [name]
+        if name in ("clang", "clang++"):
+            # Debian/Ubuntu frequently packages specific LLVM releases
+            version_suffixes = ["19", "18", "17", "16", "15", "14"]
+            for v in version_suffixes:
+                candidate_names.append(f"{name}-{v}")
 
-        # Check standard known directories
         search_paths = [
             "/usr/bin",
             "/usr/local/bin",
             "/opt/homebrew/bin",
             "/Library/Developer/CommandLineTools/usr/bin",
-            "/usr/lib/llvm-14/bin",
-            "/usr/lib/llvm-15/bin",
-            "/usr/lib/llvm-16/bin",
-            "/usr/lib/llvm-17/bin",
+            "/usr/lib/llvm-19/bin",
             "/usr/lib/llvm-18/bin",
+            "/usr/lib/llvm-17/bin",
+            "/usr/lib/llvm-16/bin",
+            "/usr/lib/llvm-15/bin",
+            "/usr/lib/llvm-14/bin",
+            "/usr/lib/llvm-13/bin",
         ]
+
+        # 1. First check candidates against standard PATH
+        for cand in candidate_names:
+            resolved = shutil.which(cand)
+            if resolved and os.access(resolved, os.X_OK):
+                return resolved
+
+        # 2. Check standard known LLVM / system directories
         for base in search_paths:
-            candidate = os.path.join(base, name)
-            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
-                return candidate
+            for cand in candidate_names:
+                candidate = os.path.join(base, cand)
+                if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                    return candidate
 
         return None
 
@@ -92,15 +105,84 @@ class CompilerSandbox:
         """Checks if the required compiler or analyzer tool is available."""
         return self.resolve_executable(executable_name) is not None
 
-    def _build_isolated_env(self, temp_dir: str) -> Dict[str, str]:
+    @classmethod
+    def get_compiler_version(cls, executable_name: str) -> Optional[str]:
+        """
+        Runs `executable --version` to extract the compiler or analyzer version string.
+        """
+        resolved = cls.resolve_executable(executable_name)
+        if not resolved:
+            return None
+        try:
+            res = subprocess.run(
+                [resolved, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=2.0
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout.strip().splitlines()[0]
+        except Exception as e:
+            logger.warning(f"Failed to inspect version for '{executable_name}': {e}")
+        return None
+
+    @classmethod
+    def get_toolchain_diagnostics(cls, executable_name: str) -> Dict[str, Optional[object]]:
+        """
+        Gathers toolchain diagnostics including resolution status, path, and version.
+        """
+        resolved = cls.resolve_executable(executable_name)
+        if not resolved:
+            return {
+                "name": executable_name,
+                "available": False,
+                "path": None,
+                "version": None,
+                "error": f"Toolchain executable '{executable_name}' not found in PATH or standard LLVM locations."
+            }
+        version = cls.get_compiler_version(executable_name)
+        return {
+            "name": executable_name,
+            "available": True,
+            "path": resolved,
+            "version": version,
+            "error": None
+        }
+
+    def _build_isolated_env(self, temp_dir: str, extra_bin_dir: Optional[str] = None) -> Dict[str, str]:
         """
         Constructs a minimal, clean environment dict containing no backend secrets.
+        Ensures compiler executables and system libraries are reachable via PATH.
         """
+        path_components: List[str] = []
+        if extra_bin_dir and os.path.isdir(extra_bin_dir):
+            path_components.append(extra_bin_dir)
+
+        existing_path = os.environ.get(
+            "PATH",
+            "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Library/Developer/CommandLineTools/usr/bin"
+        )
+        for p in existing_path.split(os.pathsep):
+            if p and p not in path_components:
+                path_components.append(p)
+
+        # Append standard LLVM search paths
+        for llvm_dir in [
+            "/usr/bin",
+            "/bin",
+            "/usr/local/bin",
+            "/usr/lib/llvm-19/bin",
+            "/usr/lib/llvm-18/bin",
+            "/usr/lib/llvm-17/bin",
+            "/usr/lib/llvm-16/bin",
+            "/usr/lib/llvm-15/bin",
+            "/usr/lib/llvm-14/bin",
+        ]:
+            if llvm_dir not in path_components:
+                path_components.append(llvm_dir)
+
         isolated_env = {
-            "PATH": os.environ.get(
-                "PATH",
-                "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Library/Developer/CommandLineTools/usr/bin",
-            ),
+            "PATH": os.pathsep.join(path_components),
             "TMPDIR": temp_dir,
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
@@ -170,7 +252,8 @@ class CompilerSandbox:
                 else:
                     cmd.append(arg)
 
-            isolated_env = self._build_isolated_env(temp_dir)
+            extra_bin_dir = os.path.dirname(executable_path)
+            isolated_env = self._build_isolated_env(temp_dir, extra_bin_dir=extra_bin_dir)
 
             preexec = self._apply_resource_limits if HAS_RESOURCE else None
 

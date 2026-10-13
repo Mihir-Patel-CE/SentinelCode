@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: sentinelcode-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: Dockerfile
+    plan: starter
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "https://sentinelcode.onrender.com,http://localhost:5173,http://localhost:3000"
+      - key: AI_PROVIDER
+        value: mock

@@ -19,6 +19,23 @@ try:
 except Exception as e:
     logger.warning(f"Could not pre-seed demo account on startup: {e}")
 
+# Toolchain diagnostic check on startup
+try:
+    from app.services.analyzers.sandbox import CompilerSandbox
+    _c_diag = CompilerSandbox.get_toolchain_diagnostics("clang")
+    _cpp_diag = CompilerSandbox.get_toolchain_diagnostics("clang++")
+    if _c_diag["available"]:
+        logger.info(f"C Toolchain Diagnostic: clang={_c_diag['path']} ({_c_diag['version']})")
+    else:
+        logger.warning(f"C Toolchain Diagnostic: clang is NOT available in system PATH. (Error: {_c_diag['error']})")
+
+    if _cpp_diag["available"]:
+        logger.info(f"C++ Toolchain Diagnostic: clang++={_cpp_diag['path']} ({_cpp_diag['version']})")
+    else:
+        logger.warning(f"C++ Toolchain Diagnostic: clang++ is NOT available in system PATH. (Error: {_cpp_diag['error']})")
+except Exception as _e:
+    logger.warning(f"Could not perform startup compiler diagnostic check: {_e}")
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Production-grade AI Code Review & Bug Detection Platform providing static analysis, security checks, and AI remediation.",
